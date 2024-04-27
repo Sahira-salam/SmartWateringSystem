@@ -1,0 +1,74 @@
+#include <ESP8266WiFi.h>
+#include <Wire.h> 
+#include <ThingSpeak.h>
+
+// replace with your channel's thingspeak API key,
+unsigned long channelID =  2519764; //your channel 
+String apiKey = "LLIBJC6Q2HMOE826";
+const char* ssid = "SRK";
+const char* password = "12345678";
+const char* server = "api.thingspeak.com";
+
+WiFiClient client;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(D0, INPUT);
+  pinMode(D1, INPUT);
+  pinMode(D2, INPUT);
+
+  delay(10);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+}
+
+void loop() {
+  int m1 = analogRead(D0);
+  int m2 = analogRead(D1);
+  int m3 = analogRead(D2);
+
+  if (client.connect(server, 80)) {
+    String postStr = apiKey;
+    postStr += "&field5=";
+    postStr += String(m1);
+    postStr += "&field6=";
+    postStr += String(m2);
+    postStr += "&field7=";
+    postStr += String(m3);
+    postStr += "\r\n\r\n";
+
+    client.print("POST /update HTTP/1.1\n");
+    client.print("Host: api.thingspeak.com\n");
+    client.print("Connection: close\n");
+    client.print("X-THINGSPEAKAPIKEY: " + apiKey + "\n");
+    client.print("Content-Type: application/x-www-form-urlencoded\n");
+    client.print("Content-Length: ");
+    client.print(postStr.length());
+    client.print("\n\n");
+    client.print(postStr);
+
+    Serial.print("Moisture Sensor 1 Value: ");
+    Serial.print(m1);
+    Serial.print(" | Moisture Sensor 2 Value: ");
+    Serial.print(m2);
+    Serial.print(" | Moisture Sensor 3 Value: ");
+    Serial.println(m3);
+    Serial.println(" send to Thingspeak");
+
+    ThingSpeak.setField(5, m1);
+    ThingSpeak.setField(6, m2);
+    ThingSpeak.setField(7, m3);
+  }
+  client.stop();
+
+  Serial.println("Waiting...");
+  for (unsigned int i = 0; i < 20; i++) {
+    delay(2000);
+  }
+}
